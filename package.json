@@ -20,6 +20,7 @@
     "smoke": "npm run build && npm run harness && electron scripts/smoke.cjs",
     "test": "npm run typecheck && npm run smoke",
     "screenshot": "electron scripts/screenshot.cjs",
+    "docs:shots": "electron scripts/docs-shots.cjs",
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder"
   },

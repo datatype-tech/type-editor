@@ -102,7 +102,13 @@ export default function Toolbar({
 
   return (
     <nav className="toolbar">
-      <button type="button" className="cmd" onClick={onNew} title={`${t('toolbar.new')} — Ctrl+N`}>
+      <button
+        type="button"
+        className="cmd"
+        data-action="new"
+        onClick={onNew}
+        title={`${t('toolbar.new')} — Ctrl+N`}
+      >
         <FilePlus className="cmd__icon" size={15} strokeWidth={1.6} />
         <span className="cmd__label">{t('toolbar.new')}</span>
       </button>

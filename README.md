@@ -1,62 +1,93 @@
-# Type Editor
+<p align="center">
+  <img src="docs/logo.svg" width="72" height="72" alt="">
+</p>
 
-A desktop Markdown editor built with Electron, React and CodeMirror 6. It renders
-your Markdown in place as you type, the way Typora does: leave a line and its
-syntax collapses into formatted text; put the caret back on it and the raw source
-reappears for editing.
+<h1 align="center">Type Editor</h1>
+
+<p align="center">
+  A desktop Markdown editor that renders your document in place, as you type.
+</p>
+
+<p align="center">
+  <a href="README.zh-CN.md">简体中文</a> · <a href="https://dtio.org">dtio.org</a>
+</p>
+
+![The editor, with a Markdown document rendered in place](docs/screenshot.png)
+
+## What it is
+
+A Markdown file opened in Type Editor reads as a finished document. The
+punctuation — `#`, `**`, backticks, link targets — is hidden on every line that
+does not hold the caret, and what remains is styled: headings are headings,
+tables are tables, formulas are typeset. Move the caret onto a line and its
+source comes back for editing.
+
+It is built with Electron, React and CodeMirror 6, and it edits one document at a
+time: no tabs, no split view, just the file you are working on.
 
 ## Features
 
-**Live preview, not a preview pane.** A CodeMirror decoration layer hides Markdown
-punctuation (`#`, `**`, backticks, link targets) on every line that does not hold
-the caret and styles what remains. Only visible lines are decorated, so typing
-stays cheap no matter how long the document is.
+**Live preview.** Headings, emphasis, lists, task lists, tables, quotes, code
+blocks with syntax highlighting, images and rules, all rendered where they are
+written. Moving the caret onto a line reveals that line's Markdown, with a short
+fade so the swap is easy to follow.
 
-**LaTeX.** `$inline$`, `$$display$$`, `\(…\)` and `\[…\]` render through KaTeX,
-inline in the document. Multi-line display formulas collapse their source lines
-and render as a centred block. Math inside code spans and fences is left alone.
+**LaTeX.** `$inline$`, `$$display$$`, `\(…\)` and `\[…\]` render through KaTeX.
+Multi-line display formulas collapse their source and become a centred block.
+Math inside code spans and fences is left alone.
 
-**Tables and task lists.** GFM tables render as real tables while the caret is
-outside them; step into one and the pipe syntax returns. `- [ ]` becomes a
-clickable checkbox that rewrites the marker in the source.
+**The syntax Markdown forgot.** `==highlight==`, `^superscript^`, `~subscript~`,
+footnotes — `[^1]`, with the definitions collected at the end — definition lists
+and YAML front matter all render, and all survive the export.
 
-**Export.** Save the document as a single PNG (via `html-to-image` at 2× with the
-full print stylesheet) or as a real `.docx` (via `docx`), where formulas are
-rasterised and embedded so Word shows them correctly.
+**Raw HTML, without the scripts.** A table, a `<details>`, a figure: write the
+HTML and it renders. Scripts, styles, event handlers and `javascript:` URLs are
+stripped before anything reaches the page.
 
-**Auto-save, and a document that comes back.** The title bar cycles between
-30 s, 1 min, 5 min and off, and only ever writes to a document that already has
-a path, so it can never surprise you with a save dialog. The document you were
-editing — saved or not — is restored the next time the window opens.
+**Export.** The document saves as a single PNG, or as a real `.docx` in which
+formulas are embedded as images so Word shows them correctly. The exported page
+uses the same measurements as the preview, so what you see is what you get.
 
-**Outline, focus and typewriter.** A table of contents built from the headings
-in the buffer, with the section you are reading marked. Focus mode dims every
-block but the one holding the caret; typewriter mode keeps the caret line in the
-middle of the window.
+**Auto-save, and a document that comes back.** The title bar sets the interval —
+30 seconds, 1 minute, 5 minutes, off — and it only ever writes to a document that
+already has a path. The document you were editing, saved or not, and the list of
+files you have opened, are restored the next time the window opens.
 
-**Rare Markdown.** `==highlight==`, `^superscript^`, `~subscript~`, footnotes
-(`[^1]` with definitions collected at the end), definition lists and YAML front
-matter all render in place and in the export. Raw HTML is allowed — a table, a
-`<details>` or a figure — with scripts, event handlers and `javascript:` URLs
-stripped before anything reaches the DOM.
+**Find and replace.** Its own panel rather than the browser's: match case, whole
+word and regular expressions, with a live count of where you are.
 
-**Settings.** Six colour themes (including a dark one for each family), fifteen
-document faces shown in their own typeface, body size, leading, text width, side
-margin and tab size, an interface language (English, 简体中文, 繁體中文, 日本語),
-and both view modes. Everything is kept in IndexedDB, along with the last
-document and the list of recently opened files.
+**Outline, focus and typewriter.** A table of contents built from the headings in
+the buffer, nested by level, with the section you are reading marked. Focus mode
+dims every block but the one holding the caret; typewriter mode keeps the caret
+line in the middle of the window.
 
-**Files.** Open, save, save-as, drag-and-drop onto the window, and an
-unsaved-changes guard on every destructive action including window close.
+## Settings
+
+![The settings pane](docs/settings.png)
+
+Seven colour themes — the warm default, two minimal, plain light and dark, and
+two after Anthropic's palette. Seventeen document faces, each listed in its own
+typeface. Body size, leading, text width, side margin and tab size. Four
+interface languages: English, 简体中文, 繁體中文 and 日本語. And the two view
+modes above. All of it is kept in IndexedDB, along with the last document and
+the recent-file list.
 
 ## Getting started
 
+Download the installer from the releases page, or build it yourself:
+
 ```bash
 npm install
-npm run dev
+npm run dev       # Vite dev server plus Electron, with hot reload
 ```
 
-If your network needs the local proxy, set it for the install:
+```bash
+npm run build     # main, preload and renderer into out/
+npm run pack      # unpacked application in release/
+npm run dist      # installer and portable zip in release/
+```
+
+If your network needs a proxy for the install:
 
 ```bash
 # PowerShell
@@ -65,49 +96,82 @@ $env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
 npm install
 ```
 
-## Scripts
+`npm test` type-checks both projects and then runs an end-to-end check against
+the production build: it types a document through the real input pipeline and
+asserts that the live preview decorates headings, math, task lists, code fences
+and images, that the outline lists the headings, that find and replace works,
+that settings persist, and that both exporters produce valid files. It also
+fails on any renderer console error, which is what keeps the
+Content-Security-Policy honest.
 
-| Script | What it does |
-| ------ | ------------ |
-| `npm run dev` | Vite dev server + Electron, with hot reload |
-| `npm run build` | Builds main, preload and renderer into `out/` |
-| `npm run typecheck` | Type-checks the node and web projects |
-| `npm test` / `npm run smoke` | End-to-end check against the production build |
-| `npm run pack` | Unpacked build in `release/` |
-| `npm run dist` | Installer via electron-builder |
+## Keyboard shortcuts
 
-`npm run smoke` launches the real production build in Electron and asserts that
-the window mounts, that the live preview decorates headings, math, task lists and
-images, and that both exporters produce valid files (it unzips the `.docx` and
-checks its XML). It also fails on any renderer console error, which is what keeps
-the Content-Security-Policy honest.
+| | |
+| --- | --- |
+| `Ctrl+N` / `Ctrl+O` | New / Open |
+| `Ctrl+S` / `Ctrl+Shift+S` | Save / Save As |
+| `Ctrl+Shift+A` | Cycle the auto-save interval |
+| `Ctrl+Shift+E` / `Ctrl+Shift+W` | Export as PNG / as Word |
+| `Ctrl+F` | Find and replace |
+| `Ctrl+/` | Toggle live preview and source mode |
+| `Ctrl+E` | Inline code |
+| `Ctrl+Shift+K` | Code block |
+| `Ctrl+,` | Settings |
+| `Ctrl+Shift+O` | Outline |
+| `Ctrl+Shift+F` / `Ctrl+Shift+T` | Focus mode / typewriter mode |
+| `Ctrl+Shift+H` | The welcome page |
 
-`scripts/screenshot.cjs` captures the running app to `tmp/` for design review:
+## Project layout
 
-```bash
-node_modules/.bin/electron scripts/screenshot.cjs
+```
+src/
+  main/            Electron main process
+    index.ts         application lifecycle
+    window.ts        frameless window, platform-specific chrome
+    ipc.ts           file IO, export sinks, the unsaved-changes window
+    menu.ts          application menu, forwarded to the renderer
+  preload/         contextBridge surface — the renderer's only privileged API
+  shared/          channel names, payload types and menu copy shared by both
+  renderer/
+    index.html       the editor window
+    dialog.html      the unsaved-changes prompt, a window of its own
+    src/
+      about.md       the About page, a Markdown document like any other
+      welcome.md     the page the editor opens on when there is nothing to restore
+      editor/        CodeMirror setup, theme, live-preview decorations, widgets
+      components/    title bar, command bar, status bar, outline, settings,
+                     find bar, font picker
+      export/        PNG and Word exporters
+      lib/           markdown-it with the extra syntax, settings, i18n,
+                     IndexedDB storage, path handling, the logo
+scripts/           smoke test, screenshots, export harness (development only)
+docs/              the images this file uses
 ```
 
-## Building
+## Design
 
-```bash
-npm run build   # main, preload and renderer into out/
-npm run pack    # unpacked application in release/
-npm run dist    # installer and portable zip in release/
-```
+The default theme is deliberately warm rather than the usual blue-on-grey: every
+neutral is warm, rules are hairlines instead of shadows, corners are near-square,
+and a single clay accent (`#b0553a`) carries interaction. The document sits on a
+barely-warm paper (`#fdfcf9`) against white chrome.
 
-The About page states the version, which the renderer build reads from
-`package.json`, so a release only needs the version bumped in that one place.
+That palette is one of seven presets, each defined as the same set of token names
+in `src/renderer/src/styles/global.css` and selected with `data-theme` on the
+root element. Structure — radii, motion, fonts, metrics — is fixed and shared,
+and the document metrics are shared with the export. Motion follows Fluent:
+three curves, a duration ramp, and a transition on every change of state.
 
-### About code signing
+The mark is an insertion caret beside three lines of text that shorten as they
+descend. It is drawn from one set of coordinates in `lib/logo.ts`, which the
+header, the welcome page and the About page all read.
+
+## Code signing
 
 The installer is **not** signed, and there is no way to make it signed that is
 both free and automatic. Windows SmartScreen decides what to trust from a
 certificate issued to a verified identity plus the file's download reputation,
 and it ignores self-signed certificates entirely — signing with one changes
 nothing.
-
-What is actually available:
 
 | Option | Cost | Effort |
 | ------ | ---- | ------ |
@@ -118,71 +182,16 @@ What is actually available:
 
 The build is ready for any of them: electron-builder signs automatically when
 `CSC_LINK` (a `.pfx`, or a link to one) and `CSC_KEY_PASSWORD` are set in the
-environment, so nothing in this repository has to change. With SignPath the
-signing happens after the build, on the artifact, so it needs no configuration
-here at all.
-
-## Keyboard shortcuts
-
-| | |
-| --- | --- |
-| `Ctrl+N` / `Ctrl+O` | New / Open |
-| `Ctrl+S` / `Ctrl+Shift+S` | Save / Save As |
-| `Ctrl+Shift+A` | Cycle auto-save |
-| `Ctrl+Shift+E` / `Ctrl+Shift+W` | Export PNG / Word |
-| `Ctrl+F` | Find and replace |
-| `Ctrl+/` | Toggle live preview and source mode |
-| `Ctrl+E` | Inline code |
-| `Ctrl+Shift+K` | Code block |
-| `Ctrl+,` | Settings |
-| `Ctrl+Shift+O` / `Ctrl+Shift+F` / `Ctrl+Shift+T` | Outline / focus mode / typewriter mode |
-
-## Project layout
-
-```
-src/
-  main/            Electron main process
-    index.ts         app lifecycle
-    window.ts        frameless window, platform-specific chrome
-    ipc.ts           file IO, export sinks, unsaved-changes guard
-    menu.ts          application menu (forwards commands to the renderer)
-  preload/         contextBridge surface — the renderer's only privileged API
-  renderer/
-    index.html       the editor window
-    dialog.html      the unsaved-changes window, which is a window of its own
-    src/
-      editor/        CodeMirror setup, theme, live-preview decorations, widgets
-      components/    title bar, command bar, status bar, editor host, outline,
-                     settings pane, find bar, dialogs
-      export/        PNG and Word exporters
-      lib/           markdown-it + KaTeX and the extra syntax, settings, i18n,
-                     IndexedDB storage, path handling
-  shared/          channel names, payload types, menu copy shared by both sides
-scripts/           smoke test, screenshot helper, export harness (test-only)
-```
-
-## Design
-
-The default theme is deliberately warm rather than the usual blue-on-grey: every
-neutral is warm, rules are hairlines instead of shadows, corners are near-square,
-and a single clay accent (`#b0553a`) carries interaction. The document sits on a
-barely-warm paper (`#fdfcf9`) against white chrome.
-
-That palette is one of six presets — Minimal (no hue at all), Minimal Light,
-Plain Light, Plain Dark, Anthropic and Anthropic Dark — each defined as the same
-set of token names in `src/renderer/src/styles/global.css`, selected with
-`data-theme` on the root element. Structure (radii, motion, fonts, metrics) is
-fixed and shared, and the document metrics are shared with the export, so what is
-on screen is what lands in the PNG. Motion follows Fluent: three curves, a
-duration ramp, and transitions on every state change.
+environment, so nothing in this repository has to change.
 
 ## Security
 
 The renderer runs sandboxed with `contextIsolation` on and no Node integration.
-Raw HTML in Markdown is disabled, because the editor opens arbitrary files from
-disk into a window that holds the IPC bridge. A strict CSP is injected into the
-production build only — the Vite dev server needs an inline React-refresh
-preamble.
+Raw HTML in Markdown is allowed, because a document should be able to carry a
+table or a `<details>`; it is parsed into a real DOM and cleaned there — script
+and style elements, every `on*` attribute and any `javascript:` URL are removed —
+before it is inserted. A strict CSP is injected into the production build only,
+since the Vite dev server needs an inline React-refresh preamble.
 
 ## Known limitations
 
@@ -190,4 +199,12 @@ preamble.
   `data:` URLs are. Attach them as data URLs if you need them in the `.docx`.
 - Ordered lists in the Word export share a single numbering instance, so several
   separate ordered lists continue one sequence instead of restarting.
-- Editing a table shows its raw pipe syntax until the caret leaves it.
+- Editing a table, a rendered HTML block or a display formula shows its raw
+  source until the caret leaves it, which is how the rest of the editor behaves
+  too.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+Built by [Datatype Team](https://dtio.org). Lead developer: Simalth Wang.
