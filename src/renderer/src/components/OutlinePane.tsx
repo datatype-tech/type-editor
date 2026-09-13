@@ -15,14 +15,31 @@ interface OutlinePaneProps {
 /** Width of one level of nesting, in pixels. */
 const STEP = 14
 
-function OutlinePane({ open, entries, activeLine, onSelect, onClose }: OutlinePaneProps) {
-  const t = useT()
-
-  // The heading above the caret is the section being read.
+function findActiveHeadingIndex(entries: OutlineEntry[], activeLine: number): number {
   let current = -1
   for (let index = 0; index < entries.length; index += 1) {
     if (entries[index].line <= activeLine) current = index
   }
+  return current
+}
+
+function OutlinePane({ open, entries, activeLine, onSelect, onClose }: OutlinePaneProps) {
+  const t = useT()
+
+  // When closed, don't waste work rendering item trees.
+  if (!open) {
+    return (
+      <aside className="outline-pane" aria-hidden="true" aria-label={t('outline.title')}>
+        <div className="outline-pane__head">
+          <ListTree className="outline-pane__icon" size={14} strokeWidth={1.7} />
+          <span className="outline-pane__title">{t('outline.title')}</span>
+        </div>
+      </aside>
+    )
+  }
+
+  // The heading above the caret is the section being read.
+  const current = findActiveHeadingIndex(entries, activeLine)
 
   return (
     <aside
@@ -80,4 +97,13 @@ function OutlinePane({ open, entries, activeLine, onSelect, onClose }: OutlinePa
   )
 }
 
-export default memo(OutlinePane)
+export default memo(OutlinePane, (prev, next) => {
+  // Both closed: skip render entirely
+  if (!prev.open && !next.open) return true
+  if (prev.open !== next.open) return false
+  if (prev.entries !== next.entries) return false
+  if (prev.onSelect !== next.onSelect || prev.onClose !== next.onClose) return false
+
+  // If open and activeLine changed, only re-render if the highlighted heading changed
+  return findActiveHeadingIndex(prev.entries, prev.activeLine) === findActiveHeadingIndex(next.entries, next.activeLine)
+})

@@ -52,6 +52,31 @@ export interface PickedImage {
 }
 
 export type DiscardChoice = 'save' | 'discard' | 'cancel'
+export type UpdateChoice = 'update' | 'later'
+
+export interface UpdateInfo {
+  version: string
+  name: string
+  releaseNotes: string
+  releaseUrl: string
+  publishedAt: string
+  downloadUrl: string | null
+  assetName: string | null
+  assetSize?: number
+}
+
+export interface UpdateCheckResult {
+  hasUpdate: boolean
+  currentVersion: string
+  update?: UpdateInfo
+  error?: string
+}
+
+export interface UpdateDownloadProgress {
+  percent: number
+  transferred: number
+  total: number
+}
 
 /** Commands the application menu sends down to the renderer. */
 export type MenuCommand =
@@ -98,6 +123,15 @@ export const IPC = {
   menuCommand: 'menu:command',
   locale: 'app:locale',
   copyText: 'clipboard:write',
+
+  /** Auto updater channels */
+  updaterCheck: 'updater:check',
+  updaterDownload: 'updater:download',
+  updaterInstall: 'updater:install',
+  updaterOpenUrl: 'updater:open-url',
+  updaterProgress: 'updater:progress',
+  confirmUpdate: 'dialog:confirm-update',
+  updateChoice: 'dialog:update-choice',
 
   windowMinimize: 'window:minimize',
   windowToggleMaximize: 'window:toggle-maximize',

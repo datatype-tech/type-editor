@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { MessageKey } from '../lib/i18n'
 import { useT } from '../lib/i18n-react'
 
@@ -16,7 +17,7 @@ const SAVE_LABEL: Record<StatusBarProps['saveState'], MessageKey | null> = {
   error: 'status.failed'
 }
 
-export default function StatusBar({
+function StatusBar({
   words,
   characters,
   line,
@@ -50,3 +51,5 @@ export default function StatusBar({
     </footer>
   )
 }
+
+export default memo(StatusBar)

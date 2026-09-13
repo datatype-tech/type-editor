@@ -15,12 +15,18 @@ function frameOptions(): Electron.BrowserWindowConstructorOptions {
 }
 
 export function createMainWindow(): BrowserWindow {
+  const iconPath =
+    process.platform === 'win32'
+      ? join(__dirname, '../../build/icon.ico')
+      : join(__dirname, '../../build/icon.png')
+
   const window = new BrowserWindow({
     width: 1180,
     height: 820,
     minWidth: 620,
     minHeight: 420,
     show: false,
+    icon: iconPath,
     backgroundColor: '#ffffff',
     ...frameOptions(),
     webPreferences: {

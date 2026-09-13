@@ -373,7 +373,7 @@ function Workspace({
 
   const handleChange = useCallback((text: string) => {
     textRef.current = text
-    setDirty(true)
+    if (!docRef.current.dirty) setDirty(true)
     // Editing it makes it the user's document, not the page we shipped.
     if (!isWelcomeDocument(text)) setWelcome(false)
     if (findOpenRef.current) setRevision((current) => current + 1)
@@ -528,6 +528,14 @@ function Workspace({
     [updateSettings]
   )
   const handleSourceModeChange = useCallback((next: boolean) => setSourceMode(next), [])
+  const handleNew = useCallback(() => void newDocument(), [newDocument])
+  const handleOpen = useCallback(() => void openDocument(), [openDocument])
+  const handleOpenRecent = useCallback((path: string) => void openDroppedPath(path), [openDroppedPath])
+  const handleSave = useCallback(() => void saveDocument(), [saveDocument])
+  const handleSaveAs = useCallback(() => void saveDocument({ saveAs: true }), [saveDocument])
+  const handleExportPng = useCallback(() => void exportAs('png'), [exportAs])
+  const handleExportDocx = useCallback(() => void exportAs('docx'), [exportAs])
+  const handleInsertImage = useCallback(() => void insertImage(), [insertImage])
 
   return (
     <div
@@ -549,18 +557,18 @@ function Workspace({
         busy={busy !== null}
         settingsOpen={paneOpen}
         outlineOpen={outlineOpen}
-        onNew={() => void newDocument()}
         recent={recent}
-        onOpen={() => void openDocument()}
-        onOpenRecent={(path: string) => void openDroppedPath(path)}
-        onSave={() => void saveDocument()}
-        onSaveAs={() => void saveDocument({ saveAs: true })}
-        onExportPng={() => void exportAs('png')}
-        onExportDocx={() => void exportAs('docx')}
+        onNew={handleNew}
+        onOpen={handleOpen}
+        onOpenRecent={handleOpenRecent}
+        onSave={handleSave}
+        onSaveAs={handleSaveAs}
+        onExportPng={handleExportPng}
+        onExportDocx={handleExportDocx}
         onFind={openFind}
         onInsertInlineCode={insertInlineCode}
         onInsertCodeBlock={insertCodeBlock}
-        onInsertImage={() => void insertImage()}
+        onInsertImage={handleInsertImage}
         onToggleOutline={toggleOutline}
         onToggleSettings={togglePane}
         onSourceModeChange={handleSourceModeChange}
@@ -604,6 +612,7 @@ function Workspace({
           sourceMode={sourceMode}
           tabSize={settings.tabSize}
           typewriter={settings.typewriterMode}
+          autoCloseBrackets={settings.autoCloseBrackets}
           context={editorContext}
           onChange={handleChange}
           onCaret={handleCaret}

@@ -1,5 +1,6 @@
-import { memo } from 'react'
+import { memo, useCallback, useState } from 'react'
 import { X } from 'lucide-react'
+import type { UpdateInfo } from '@shared/ipc'
 import type { Locale, Settings, ThemeId } from '../lib/settings'
 import { AUTOSAVE_STEPS, LOCALES, TAB_SIZES, THEMES, fontById } from '../lib/settings'
 import type { MessageKey } from '../lib/i18n'
@@ -61,6 +62,68 @@ function SettingsPane({
   onClose
 }: SettingsPaneProps) {
   const t = useT()
+
+  const [checkingUpdate, setCheckingUpdate] = useState(false)
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
+  const [updateStatus, setUpdateStatus] = useState<
+    'idle' | 'uptodate' | 'available' | 'downloading' | 'ready' | 'error'
+  >('idle')
+  const [downloadPercent, setDownloadPercent] = useState(0)
+  const [updateError, setUpdateError] = useState('')
+
+  const handleCheckUpdate = useCallback(async () => {
+    setCheckingUpdate(true)
+    setUpdateError('')
+    try {
+      const res = await window.api.checkForUpdates()
+      if (res.hasUpdate && res.update) {
+        setUpdateInfo(res.update)
+        setUpdateStatus('available')
+      } else if (res.error) {
+        setUpdateStatus('error')
+        setUpdateError(res.error)
+      } else {
+        setUpdateStatus('uptodate')
+      }
+    } catch (err) {
+      setUpdateStatus('error')
+      setUpdateError((err as Error).message)
+    } finally {
+      setCheckingUpdate(false)
+    }
+  }, [])
+
+  const handleDownloadUpdate = useCallback(async () => {
+    setUpdateStatus('downloading')
+    setDownloadPercent(0)
+    const offProgress = window.api.onUpdateProgress((p) => {
+      setDownloadPercent(p.percent)
+    })
+    try {
+      const res = await window.api.downloadUpdate()
+      if (res.success) {
+        setUpdateStatus('ready')
+      } else {
+        setUpdateStatus('error')
+        setUpdateError(res.error || 'Download failed')
+      }
+    } catch (err) {
+      setUpdateStatus('error')
+      setUpdateError((err as Error).message)
+    } finally {
+      offProgress()
+    }
+  }, [])
+
+  const handleInstallNow = useCallback(() => {
+    void window.api.installUpdate()
+  }, [])
+
+  const handleViewRelease = useCallback(() => {
+    if (updateInfo?.releaseUrl) {
+      void window.api.openReleaseUrl(updateInfo.releaseUrl)
+    }
+  }, [updateInfo])
 
   return (
     <aside
@@ -281,6 +344,14 @@ function SettingsPane({
         <section className="settings-group">
           <h2 className="settings-group__title">{t('settings.editor')}</h2>
           <div className="field">
+            <Toggle
+              label={t('settings.autoCloseBrackets')}
+              hint={t('settings.autoCloseBrackets.hint')}
+              checked={settings.autoCloseBrackets}
+              onChange={(autoCloseBrackets) => onChange({ autoCloseBrackets })}
+            />
+          </div>
+          <div className="field">
             <div className="field__head">{t('settings.autoSave')}</div>
             <div className="segmented">
               {AUTOSAVE_STEPS.map((seconds) => (
@@ -294,6 +365,84 @@ function SettingsPane({
                   {t(AUTOSAVE_KEY[seconds])}
                 </button>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="settings-group">
+          <h2 className="settings-group__title">{t('settings.update')}</h2>
+          <div className="field">
+            <div className="update-card">
+              <div className="update-card__header">
+                <div>
+                  <div className="update-card__version">
+                    {t('settings.currentVersion', { version: __APP_VERSION__ })}
+                  </div>
+                  <div className="update-card__status">
+                    {checkingUpdate
+                      ? t('settings.checkingUpdate')
+                      : updateStatus === 'uptodate'
+                        ? t('settings.updateUpToDate')
+                        : updateStatus === 'available' && updateInfo
+                          ? t('settings.updateAvailable', { version: updateInfo.version })
+                          : updateStatus === 'downloading'
+                            ? t('settings.downloadingUpdate', { percent: downloadPercent })
+                            : updateStatus === 'ready'
+                              ? t('settings.updateDownloaded')
+                              : updateStatus === 'error'
+                                ? t('settings.updateFailed', { error: updateError })
+                                : ''}
+                  </div>
+                </div>
+
+                <div className="update-card__actions">
+                  {updateStatus === 'ready' ? (
+                    <button
+                      type="button"
+                      className="btn btn--primary btn--compact"
+                      onClick={handleInstallNow}
+                    >
+                      {t('settings.installNow')}
+                    </button>
+                  ) : updateStatus === 'available' ? (
+                    <button
+                      type="button"
+                      className="btn btn--primary btn--compact"
+                      onClick={handleDownloadUpdate}
+                    >
+                      {t('settings.updateNow')}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn--compact"
+                      data-action="check-update"
+                      disabled={checkingUpdate}
+                      onClick={handleCheckUpdate}
+                    >
+                      {checkingUpdate ? t('settings.checkingUpdate') : t('settings.checkUpdate')}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {updateStatus === 'downloading' && (
+                <div className="update-card__progress">
+                  <div className="update-card__bar" style={{ width: `${downloadPercent}%` }} />
+                </div>
+              )}
+
+              {updateStatus === 'available' && updateInfo && (
+                <div className="update-card__meta">
+                  <button
+                    type="button"
+                    className="linkbtn"
+                    onClick={handleViewRelease}
+                  >
+                    {t('settings.viewRelease')} →
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </section>

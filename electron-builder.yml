@@ -20,6 +20,7 @@ nsis:
   allowToChangeInstallationDirectory: true
   shortcutName: Type Editor
   artifactName: ${productName}-${version}-setup.${ext}
+  include: build/installer.nsh
 mac:
   target:
     - dmg

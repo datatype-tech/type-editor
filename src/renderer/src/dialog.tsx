@@ -15,9 +15,12 @@ import type { Locale } from './lib/settings'
  */
 function DiscardDialog() {
   const params = new URLSearchParams(window.location.search)
+  const dialogType = params.get('type') ?? 'discard'
+  const isUpdate = dialogType === 'update'
   const locale = (params.get('locale') ?? 'en') as Locale
   const theme = params.get('theme') ?? 'type'
   const name = params.get('name') ?? ''
+  const version = params.get('version') ?? ''
   const count = Number(params.get('count') ?? '1')
 
   const t = createTranslator(locale)
@@ -57,22 +60,55 @@ function DiscardDialog() {
     window.api.replyDiscard(choice)
   }
 
+  const replyUpdate = (choice: 'update' | 'later'): void => {
+    setAnswered(true)
+    window.api.replyUpdate(choice)
+  }
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') {
         event.preventDefault()
-        reply('cancel')
+        if (isUpdate) replyUpdate('later')
+        else reply('cancel')
         return
       }
       // A focused button answers to Enter on its own.
       if (event.key === 'Enter' && !(event.target instanceof HTMLButtonElement)) {
         event.preventDefault()
-        reply('save')
+        if (isUpdate) replyUpdate('update')
+        else reply('save')
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   })
+
+  if (isUpdate) {
+    return (
+      <div className={`dialog-card${answered ? ' is-answered' : ''}`} ref={cardRef}>
+        <div className="dialog-card__body">
+          <h1 className="dialog__title">{t('dialog.updateTitle')}</h1>
+          <p className="dialog__body">{t('dialog.updateBody', { version })}</p>
+          <p className="dialog__detail">{t('dialog.updateDetail')}</p>
+        </div>
+
+        <div className="dialog__actions">
+          <button type="button" className="btn" onClick={() => replyUpdate('later')}>
+            {t('dialog.updateLater')}
+          </button>
+          <button
+            type="button"
+            className="btn btn--primary"
+            autoFocus
+            onClick={() => replyUpdate('update')}
+          >
+            {t('dialog.updateNow')}
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={`dialog-card${answered ? ' is-answered' : ''}`} ref={cardRef}>

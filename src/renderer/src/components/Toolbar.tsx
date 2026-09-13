@@ -15,7 +15,7 @@ import {
   Settings,
   Terminal
 } from 'lucide-react'
-import { useLayoutEffect, useRef, useState } from 'react'
+import { memo, useLayoutEffect, useRef, useState } from 'react'
 import Dropdown, { MenuItem, MenuLabel, MenuSeparator } from './Dropdown'
 import { useT } from '../lib/i18n-react'
 
@@ -66,7 +66,7 @@ interface ToolbarProps {
   onSourceModeChange: (source: boolean) => void
 }
 
-export default function Toolbar({
+function Toolbar({
   sourceMode,
   busy,
   settingsOpen,
@@ -380,3 +380,5 @@ export default function Toolbar({
     </nav>
   )
 }
+
+export default memo(Toolbar)

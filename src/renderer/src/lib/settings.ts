@@ -107,6 +107,8 @@ export interface Settings {
   focusMode: boolean
   /** Keep the caret line vertically centred while typing. */
   typewriterMode: boolean
+  /** Automatically close brackets, quotes and comment symbols. */
+  autoCloseBrackets: boolean
 }
 
 export const TAB_SIZES = [2, 4, 8] as const
@@ -126,7 +128,8 @@ export const DEFAULT_SETTINGS: Settings = {
   tabSize: 4,
   autoSave: 30,
   focusMode: false,
-  typewriterMode: false
+  typewriterMode: false,
+  autoCloseBrackets: true
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -158,7 +161,8 @@ export function normalizeSettings(input: unknown): Settings {
       ? raw.autoSave!
       : DEFAULT_SETTINGS.autoSave,
     focusMode: Boolean(raw.focusMode),
-    typewriterMode: Boolean(raw.typewriterMode)
+    typewriterMode: Boolean(raw.typewriterMode),
+    autoCloseBrackets: raw.autoCloseBrackets !== undefined ? Boolean(raw.autoCloseBrackets) : DEFAULT_SETTINGS.autoCloseBrackets
   }
 }
 

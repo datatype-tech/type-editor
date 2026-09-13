@@ -11,9 +11,10 @@ import {
 } from '@codemirror/search'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
-import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react'
+import { memo, useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react'
 import { livePreview } from '../editor/livePreview'
 import {
+  autoCloseBracketsExtension,
   compartments,
   createBaseExtensions,
   editorStrings,
@@ -53,6 +54,7 @@ interface EditorPaneProps {
   sourceMode: boolean
   tabSize: number
   typewriter: boolean
+  autoCloseBrackets: boolean
   context: EditorContext
   onChange: (text: string) => void
   onCaret: (line: number, column: number) => void
@@ -67,10 +69,11 @@ interface InsertHandle {
   left: number
 }
 
-export default function EditorPane({
+function EditorPane({
   sourceMode,
   tabSize,
   typewriter,
+  autoCloseBrackets,
   context,
   onChange,
   onCaret,
@@ -97,9 +100,10 @@ export default function EditorPane({
     sourceMode,
     tabSize,
     typewriter,
+    autoCloseBrackets,
     t
   })
-  refs.current = { onChange, onCaret, onFindOpenChange, context, sourceMode, tabSize, typewriter, t }
+  refs.current = { onChange, onCaret, onFindOpenChange, context, sourceMode, tabSize, typewriter, autoCloseBrackets, t }
 
   const createState = useCallback((text: string): EditorState => {
     const current = refs.current
@@ -111,7 +115,8 @@ export default function EditorPane({
           placeholder: current.t('editor.placeholder'),
           context: current.context,
           preview: current.sourceMode ? [] : livePreview,
-          typewriter: current.typewriter
+          typewriter: current.typewriter,
+          autoCloseBrackets: current.autoCloseBrackets
         }),
         EditorView.updateListener.of((update) => {
           const live = refs.current
@@ -156,21 +161,23 @@ export default function EditorPane({
     const host = hostRef.current
     if (!host || sourceMode) return
 
+    let rafId: number | null = null
+
     const hide = (): void => {
       if (handleLineRef.current === -1) return
       handleLineRef.current = -1
       setHandle(null)
     }
 
-    const locate = (event: MouseEvent): void => {
+    const processLocate = (clientX: number, clientY: number): void => {
       const view = viewRef.current
       if (!view) return
 
       const editorBox = view.dom.getBoundingClientRect()
       const contentBox = view.contentDOM.getBoundingClientRect()
-      if (event.clientX > contentBox.left - 8) return hide()
+      if (clientX > contentBox.left - 8) return hide()
 
-      const pos = view.posAtCoords({ x: event.clientX, y: event.clientY })
+      const pos = view.posAtCoords({ x: clientX, y: clientY })
       if (pos === null) return hide()
 
       const line = view.state.doc.lineAt(pos)
@@ -188,7 +195,20 @@ export default function EditorPane({
       })
     }
 
+    const locate = (event: MouseEvent): void => {
+      const { clientX, clientY } = event
+      if (rafId !== null) cancelAnimationFrame(rafId)
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        processLocate(clientX, clientY)
+      })
+    }
+
     const clear = (): void => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId)
+        rafId = null
+      }
       handleLineRef.current = -1
       setHandle(null)
     }
@@ -196,6 +216,9 @@ export default function EditorPane({
     host.addEventListener('mousemove', locate)
     host.addEventListener('mouseleave', clear)
     return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId)
+      }
       host.removeEventListener('mousemove', locate)
       host.removeEventListener('mouseleave', clear)
     }
@@ -230,6 +253,7 @@ export default function EditorPane({
         compartments.preview.reconfigure(current.sourceMode ? [] : livePreview),
         compartments.tabSize.reconfigure(tabSizeExtension(current.tabSize)),
         compartments.typewriter.reconfigure(current.typewriter ? typewriterScroll : []),
+        compartments.closeBrackets.reconfigure(autoCloseBracketsExtension(current.autoCloseBrackets)),
         compartments.strings.reconfigure(
           editorStrings({
             placeholder: current.t('editor.placeholder'),
@@ -238,7 +262,7 @@ export default function EditorPane({
         )
       ]
     })
-  }, [sourceMode, tabSize, typewriter, context, t])
+  }, [sourceMode, tabSize, typewriter, autoCloseBrackets, context, t])
 
   useImperativeHandle(
     ref,
@@ -423,3 +447,5 @@ export default function EditorPane({
     </div>
   )
 }
+
+export default memo(EditorPane)

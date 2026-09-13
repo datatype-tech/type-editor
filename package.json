@@ -1,6 +1,6 @@
 {
   "name": "type-editor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Type Editor — a Markdown editor with live preview, LaTeX and PNG/Word export",
   "main": "./out/main/index.js",
   "author": {

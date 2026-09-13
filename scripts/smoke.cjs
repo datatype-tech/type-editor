@@ -274,6 +274,59 @@ async function testApplicationWindow() {
   })()`)
   await sleep(200)
 
+  // --- insert dropdown and scroll ---
+  await win.webContents.executeJavaScript(`(() => {
+    const insertBtn = [...document.querySelectorAll('.toolbar .cmd')].find((button) =>
+      /Insert|插入/.test(button.textContent)
+    )
+    if (insertBtn) insertBtn.click()
+    return true
+  })()`)
+  await sleep(250)
+
+  const insertMenu = await win.webContents.executeJavaScript(`(() => {
+    const menu = document.querySelector('.dropdown .menu')
+    const scroll = menu ? menu.querySelector('.menu__scroll') : null
+    const items = scroll ? scroll.querySelectorAll('.menu__item') : []
+    const initialTop = scroll ? scroll.scrollTop : 0
+    if (scroll) {
+      scroll.scrollTop = 50
+    }
+    const scrolledTop = scroll ? scroll.scrollTop : 0
+    return {
+      open: !!menu,
+      menuNoDrag: menu ? getComputedStyle(menu).webkitAppRegion === 'no-drag' : false,
+      scrollNoDrag: scroll ? getComputedStyle(scroll).webkitAppRegion === 'no-drag' : false,
+      scrollable: scroll ? scroll.scrollHeight > scroll.clientHeight && scrolledTop > 0 : false,
+      itemCount: items.length
+    }
+  })()`)
+
+  check('insert dropdown opens from toolbar', insertMenu.open)
+  check('insert menu is non-draggable (clickable & interactive)', insertMenu.menuNoDrag && insertMenu.scrollNoDrag)
+  check('insert language list is scrollable', insertMenu.scrollable, `${insertMenu.itemCount} items`)
+
+  // Click an item in the scrollable language list
+  await win.webContents.executeJavaScript(`(() => {
+    const pyItem = [...document.querySelectorAll('.menu__scroll .menu__item')].find((btn) =>
+      btn.textContent.includes('python')
+    )
+    if (pyItem) pyItem.click()
+    return true
+  })()`)
+  await sleep(300)
+
+  const inserted = await win.webContents.executeJavaScript(`(() => {
+    const content = document.querySelector('.cm-content')
+    const menu = document.querySelector('.dropdown .menu')
+    return {
+      menuClosed: !menu,
+      hasPythonFence: content ? content.textContent.includes('\`\`\`python') || content.textContent.includes('python') : false
+    }
+  })()`)
+
+  check('clicking language in insert list works and closes dropdown', inserted.menuClosed && inserted.hasPythonFence)
+
   // --- settings ---
   await win.webContents.executeJavaScript(
     `document.querySelector('[data-action="settings"]').click(), true`
@@ -319,6 +372,26 @@ async function testApplicationWindow() {
       card.textContent.includes('Type Style')
     )
     back.click()
+    return true
+  })()`)
+  await sleep(200)
+
+  // --- settings update card and bracket toggle ---
+  const updateUi = await win.webContents.executeJavaScript(`(() => {
+    const checkBtn = document.querySelector('[data-action="check-update"]')
+    const versionEl = document.querySelector('.update-card__version')
+    const toggles = [...document.querySelectorAll('.settings-pane .toggle__label')].map(e => e.textContent)
+    return {
+      hasCheckBtn: !!checkBtn,
+      versionText: versionEl ? versionEl.textContent : '',
+      hasBracketToggle: toggles.some(t => t.includes('Bracket') || t.includes('补全') || t.includes('補齊'))
+    }
+  })()`)
+
+  check('settings contains update section with current version', updateUi.hasCheckBtn && updateUi.versionText.includes('0.1.1'), updateUi.versionText)
+  check('settings contains symbol completion toggle', updateUi.hasBracketToggle)
+
+  await win.webContents.executeJavaScript(`(() => {
     document.querySelector('[data-action="settings"]').click()
     return true
   })()`)

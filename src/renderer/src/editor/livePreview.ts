@@ -142,6 +142,9 @@ function collectExtended(
   out: ExtendedSpan[]
 ): void {
   const text = state.doc.sliceString(from, to)
+  if (!text.includes('=') && !text.includes('^') && !text.includes('~') && !text.includes('[^')) {
+    return
+  }
   EXTENDED_PATTERN.lastIndex = 0
 
   let match: RegExpExecArray | null
@@ -197,6 +200,9 @@ function collectMath(
   out: MathRange[]
 ): void {
   const text = state.doc.sliceString(from, to)
+  if (!text.includes('$') && !text.includes('\\')) {
+    return
+  }
   MATH_PATTERN.lastIndex = 0
 
   let match: RegExpExecArray | null
@@ -594,21 +600,31 @@ function buildDecorations(view: EditorView): DecorationSet {
 
   // Front matter is metadata, not prose: it stays visible but recedes.
   if (doc.line(1).text.trim() === '---') {
-    let last = 0
-    for (let n = 2; n <= Math.min(doc.lines, 400); n += 1) {
-      const text = doc.line(n).text.trim()
-      if (text === '---' || text === '...') {
-        last = n
-        break
+    const firstVisible = view.visibleRanges[0] ? doc.lineAt(view.visibleRanges[0].from).number : 1
+    if (firstVisible <= 400) {
+      let last = 0
+      for (let n = 2; n <= Math.min(doc.lines, 400); n += 1) {
+        const text = doc.line(n).text.trim()
+        if (text === '---' || text === '...') {
+          last = n
+          break
+        }
       }
-    }
-    if (last > 0) {
-      for (let n = 1; n <= last; n += 1) addLineClass(n, 'cm-md-frontmatter')
+      if (last > 0) {
+        const lastVisible = view.visibleRanges[view.visibleRanges.length - 1]
+          ? doc.lineAt(view.visibleRanges[view.visibleRanges.length - 1].to).number
+          : doc.lines
+        const start = Math.max(1, firstVisible)
+        const end = Math.min(last, lastVisible)
+        for (let n = start; n <= end; n += 1) addLineClass(n, 'cm-md-frontmatter')
+      }
     }
   }
 
   // A footnote definition reads as a note, not as a paragraph.
   for (const { from, to } of view.visibleRanges) {
+    const text = doc.sliceString(from, to)
+    if (!text.includes('[^')) continue
     const firstLine = doc.lineAt(from).number
     const lastLine = doc.lineAt(Math.min(to, doc.length)).number
     for (let n = firstLine; n <= lastLine; n += 1) {
@@ -630,19 +646,45 @@ function buildDecorations(view: EditorView): DecorationSet {
   return Decoration.set([...lines, ...marks, ...accepted], true)
 }
 
+function getActiveLines(state: EditorState): Set<number> {
+  const activeLines = new Set<number>()
+  for (const range of state.selection.ranges) {
+    const first = state.doc.lineAt(range.from).number
+    const last = state.doc.lineAt(range.to).number
+    for (let n = first; n <= last; n++) {
+      activeLines.add(n)
+    }
+  }
+  return activeLines
+}
+
+function areLineSetsEqual(a: Set<number>, b: Set<number>): boolean {
+  if (a.size !== b.size) return false
+  for (const item of a) {
+    if (!b.has(item)) return false
+  }
+  return true
+}
+
 export const livePreview = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet
+    lastActiveLines: Set<number>
 
     constructor(view: EditorView) {
+      this.lastActiveLines = getActiveLines(view.state)
       this.decorations = buildDecorations(view)
     }
 
     update(update: ViewUpdate): void {
+      const activeChanged = update.selectionSet
+        ? !areLineSetsEqual(getActiveLines(update.state), this.lastActiveLines)
+        : false
+
       if (
         update.docChanged ||
         update.viewportChanged ||
-        update.selectionSet ||
+        activeChanged ||
         update.focusChanged ||
         // The parser finishes after the keystroke that fed it, so a line can
         // briefly be decorated from the tree as it was before the mark was
@@ -651,6 +693,7 @@ export const livePreview = ViewPlugin.fromClass(
         // A new document directory changes how every image resolves.
         update.startState.facet(editorContext) !== update.state.facet(editorContext)
       ) {
+        this.lastActiveLines = getActiveLines(update.state)
         this.decorations = buildDecorations(update.view)
       }
     }

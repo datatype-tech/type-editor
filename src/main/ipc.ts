@@ -1,4 +1,4 @@
-import { app, BrowserWindow, clipboard, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from 'electron'
 import { readFile, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import {
@@ -10,10 +10,12 @@ import {
   type OpenedFile,
   type PickedImage,
   type SaveRequest,
-  type SavedFile
+  type SavedFile,
+  type UpdateChoice
 } from '../shared/ipc'
 import { DEFAULT_LOCALE, isLocale, type Locale } from '../shared/locale'
 import { mainStrings, type MainKey } from '../shared/strings'
+import { updater } from './updater'
 
 type WindowGetter = () => BrowserWindow | null
 
@@ -212,6 +214,74 @@ export function promptDiscard(
   })
 }
 
+/**
+ * Shows the update prompt in a modal dialog before closing.
+ */
+export function promptUpdateOnClose(
+  getWindow: WindowGetter,
+  version: string
+): Promise<UpdateChoice> {
+  const parent = getWindow()
+  if (!parent || parent.isDestroyed()) return Promise.resolve('later')
+
+  return new Promise((resolve) => {
+    let settled = false
+    const query = new URLSearchParams({
+      type: 'update',
+      locale,
+      theme: discardTheme,
+      version
+    }).toString()
+
+    const window = new BrowserWindow({
+      parent,
+      modal: true,
+      frame: false,
+      resizable: false,
+      minimizable: false,
+      maximizable: false,
+      fullscreenable: false,
+      show: false,
+      width: 460,
+      height: 200,
+      backgroundColor: discardBackground,
+      webPreferences: {
+        preload: join(__dirname, '../preload/index.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true
+      }
+    })
+
+    const finish = (choice: UpdateChoice): void => {
+      if (settled) return
+      settled = true
+      ipcMain.removeListener(IPC.updateChoice, onChoice)
+      ipcMain.removeListener(IPC.dialogResize, onResize)
+      if (!window.isDestroyed()) window.destroy()
+      resolve(choice)
+    }
+
+    const onChoice = (event: Electron.IpcMainEvent, choice: UpdateChoice): void => {
+      if (event.sender === window.webContents) finish(choice)
+    }
+    const onResize = (event: Electron.IpcMainEvent, height: number): void => {
+      if (event.sender !== window.webContents || window.isDestroyed()) return
+      const clamped = Math.max(150, Math.min(420, Math.round(height)))
+      const [width] = window.getContentSize()
+      window.setContentSize(width, clamped)
+    }
+
+    ipcMain.on(IPC.updateChoice, onChoice)
+    ipcMain.on(IPC.dialogResize, onResize)
+
+    window.once('ready-to-show', () => window.show())
+    window.on('closed', () => finish('later'))
+
+    void window.loadFile(dialogPage(), { search: query })
+  })
+}
+
 /** Last-resort resolution of a dirty buffer, used when the renderer is silent. */
 async function resolveDirty(getWindow: WindowGetter): Promise<boolean> {
   if (!docState.dirty) return true
@@ -359,6 +429,27 @@ export function registerIpc(getWindow: WindowGetter, onLocaleChange: () => void)
     else window.maximize()
   })
   ipcMain.on(IPC.windowClose, () => getWindow()?.close())
+
+  // Updater handlers
+  ipcMain.handle(IPC.updaterCheck, async () => {
+    return updater.checkForUpdates(false)
+  })
+
+  ipcMain.handle(IPC.updaterDownload, async (event) => {
+    return updater.downloadUpdate((progress) => {
+      event.sender.send(IPC.updaterProgress, progress)
+    })
+  })
+
+  ipcMain.handle(IPC.updaterInstall, async () => {
+    updater.installAndQuit()
+  })
+
+  ipcMain.handle(IPC.updaterOpenUrl, async (_event, url: string) => {
+    if (typeof url === 'string' && url.startsWith('https://')) {
+      await shell.openExternal(url)
+    }
+  })
 }
 
 async function readDocument(filePath: string): Promise<OpenedFile> {
@@ -372,26 +463,54 @@ async function readDocument(filePath: string): Promise<OpenedFile> {
 }
 
 /**
- * Wires the window's close button into the unsaved-changes flow. The renderer
- * draws the prompt, so this cannot wait until `before-quit`.
+ * Wires the window's close button into the unsaved-changes and auto-update flow.
  */
 export function attachCloseGuard(getWindow: WindowGetter): void {
   const window = getWindow()
   if (!window) return
 
   window.on('close', (event) => {
-    if (!docState.dirty || docState.forceClose) return
+    if (docState.forceClose) return
     if (docState.closing) {
       event.preventDefault()
       return
     }
+
+    const cached = updater.getCachedUpdate()
+    const hasUpdate = cached !== null && !updater.userDeclinedOnClose
+
+    if (!docState.dirty && !hasUpdate) return
+
     event.preventDefault()
     docState.closing = true
 
     void (async () => {
       try {
-        const allow = await requestCloseApproval(getWindow)
-        if (!allow) return
+        if (docState.dirty) {
+          const allow = await requestCloseApproval(getWindow)
+          if (!allow) return
+        }
+
+        if (hasUpdate && cached) {
+          const choice = await promptUpdateOnClose(getWindow, cached.version)
+          if (choice === 'update') {
+            updater.userDeclinedOnClose = false
+            const downloaded = updater.getDownloadedPath()
+            if (downloaded) {
+              updater.installAndQuit(downloaded)
+              return
+            } else {
+              const res = await updater.downloadUpdate()
+              if (res.success && res.localPath) {
+                updater.installAndQuit(res.localPath)
+                return
+              }
+            }
+          } else {
+            updater.userDeclinedOnClose = true
+          }
+        }
+
         docState.forceClose = true
         getWindow()?.close()
       } finally {

@@ -10,13 +10,11 @@
  * Development helper — the output is committed, not generated during a build.
  */
 
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, nativeImage } = require('electron')
+app.commandLine.appendSwitch('force-device-scale-factor', '1')
+
 const fs = require('node:fs')
 const path = require('node:path')
-
-// Captures must be one pixel per pixel, whatever the display's scaling is set
-// to, or an icon "16px" frame comes out 24px on a 150% screen.
-app.commandLine.appendSwitch('force-device-scale-factor', '1')
 
 const ROOT = path.join(__dirname, '..')
 const BUILD = path.join(ROOT, 'build')
@@ -35,7 +33,7 @@ const BARS = [
 ]
 
 /**
- * The icon in a 256-unit square, sized to whatever the page is: one drawing,
+ * The icon in an exact square canvas, sized to whatever the page is: one drawing,
  * scaled by the window rather than redrawn per size.
  */
 function svg() {
@@ -46,42 +44,51 @@ function svg() {
       `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="1.6"/>`
   ).join('')
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 256 256">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
   <rect width="256" height="256" rx="56" fill="${ACCENT}"/>
   <g transform="translate(${offset.toFixed(2)},${offset.toFixed(2)}) scale(${scale.toFixed(4)})" fill="#ffffff">${bars}</g>
 </svg>`
 }
 
 function page() {
-  return `<!doctype html><meta charset="utf-8">
-<style>html,body{margin:0;padding:0;background:transparent;overflow:hidden}svg{display:block}</style>
-${svg()}`
+  return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    background: transparent;
+    overflow: hidden;
+  }
+  svg {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+  }
+</style>
+</head>
+<body>
+${svg()}
+</body>
+</html>`
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
-/** One window, resized per frame: a fresh window per size aborts its own load. */
-async function openCanvas() {
-  const window = new BrowserWindow({
-    width: 256,
-    height: 256,
-    useContentSize: true,
-    show: false,
-    frame: false,
-    transparent: true,
-    resizable: false
-  })
-  await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(page())}`)
-  await sleep(400)
-  return window
-}
-
-async function render(window, size) {
+async function renderSize(window, size) {
   window.setContentSize(size, size)
-  await sleep(120)
-  window.webContents.invalidate()
-  await sleep(120)
-  const image = await window.webContents.capturePage()
+  await sleep(150)
+  const image = await window.webContents.capturePage({ x: 0, y: 0, width: size, height: size })
+  // Ensure the image buffer matches the exact requested pixel dimensions
+  if (image.getSize().width !== size || image.getSize().height !== size) {
+    const resized = image.resize({ width: size, height: size, quality: 'best' })
+    return resized.toPNG()
+  }
   return image.toPNG()
 }
 
@@ -115,10 +122,20 @@ function ico(frames) {
 app.whenReady().then(async () => {
   fs.mkdirSync(BUILD, { recursive: true })
 
-  const window = await openCanvas()
+  const window = new BrowserWindow({
+    width: 256,
+    height: 256,
+    useContentSize: true,
+    show: false,
+    frame: false,
+    resizable: true
+  })
+  await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(page())}`)
+  await sleep(400)
+
   const frames = []
   for (const size of SIZES) {
-    frames.push({ size, png: await render(window, size) })
+    frames.push({ size, png: await renderSize(window, size) })
     console.log(`  rendered ${size}×${size}`)
   }
 
@@ -128,7 +145,7 @@ app.whenReady().then(async () => {
   console.log(`wrote ${path.relative(ROOT, icoPath)} (${icon.length} bytes, ${SIZES.length} sizes)`)
 
   // Other platforms, and the source everyone can look at.
-  const large = await render(window, 1024)
+  const large = await renderSize(window, 512)
   fs.writeFileSync(path.join(BUILD, 'icon.png'), large)
   console.log(`wrote ${path.relative(ROOT, path.join(BUILD, 'icon.png'))}`)
   fs.writeFileSync(path.join(BUILD, 'icon.svg'), svg())

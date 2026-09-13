@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1
+
+- **New Application Icon & Logo.** Refreshed brand identity with a clean, modern typographic design, and fixed taskbar and window titlebar icon distortion on Windows.
+- **Auto Update.** Added update checker in Settings pane, background release checks against GitHub Releases (`datatype-tech/type-editor`), and auto-update prompt on window close when a new version is detected.
+- **Windows Explorer Context Menu.** Added an installer option to add "Open with Type Editor" to Windows right-click context menu for all files.
+- **Bracket & Quote Auto-Completion.** Added configurable symbol auto-completion in Settings (enabled by default) for `[]`, `()`, `""`, `{}`, `/* ... */`, and `?/* ... */`.
+- **Newline Indentation Preservation.** Pressing Enter now preserves the indentation of the preceding line (`insertNewlineKeepIndent`).
+- **Dropdown & Scroll Fix.** Fixed an issue where the Insert and Recent Files menus in the toolbar were intercepted by window dragging, making items unclickable and unscrollable.
+- **Performance Enhancements.** Reduced redundant AST & regex recomputation during caret moves in live preview, eliminated forced layout reflows on mouse moves, and added component-level memoization.
+
 ## 0.1.0
 
 The first release.

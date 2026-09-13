@@ -10,7 +10,10 @@ import {
   type OpenedFile,
   type PickedImage,
   type SaveRequest,
-  type SavedFile
+  type SavedFile,
+  type UpdateCheckResult,
+  type UpdateChoice,
+  type UpdateDownloadProgress
 } from '../shared/ipc'
 
 /** Subscribes to a main-process event and returns an unsubscribe function. */
@@ -78,6 +81,16 @@ const api = {
 
   onFileSaved: (callback: (payload: { filePath: string; fileName: string }) => void): (() => void) =>
     subscribe<[{ filePath: string; fileName: string }]>(IPC.fileSaved, callback),
+
+  /** Auto-updater */
+  checkForUpdates: (): Promise<UpdateCheckResult> => ipcRenderer.invoke(IPC.updaterCheck),
+  downloadUpdate: (): Promise<{ success: boolean; localPath?: string; error?: string }> =>
+    ipcRenderer.invoke(IPC.updaterDownload),
+  installUpdate: (): Promise<void> => ipcRenderer.invoke(IPC.updaterInstall),
+  openReleaseUrl: (url: string): Promise<void> => ipcRenderer.invoke(IPC.updaterOpenUrl, url),
+  onUpdateProgress: (callback: (progress: UpdateDownloadProgress) => void): (() => void) =>
+    subscribe<[UpdateDownloadProgress]>(IPC.updaterProgress, callback),
+  replyUpdate: (choice: UpdateChoice): void => ipcRenderer.send(IPC.updateChoice, choice),
 
   platform: process.platform
 }

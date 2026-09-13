@@ -161,9 +161,9 @@ root element. Structure — radii, motion, fonts, metrics — is fixed and share
 and the document metrics are shared with the export. Motion follows Fluent:
 three curves, a duration ramp, and a transition on every change of state.
 
-The mark is an insertion caret beside three lines of text that shorten as they
-descend. It is drawn from one set of coordinates in `lib/logo.ts`, which the
-header, the welcome page and the About page all read.
+The mark is an elegant typographic T with an active editor insertion caret.
+It is drawn from one set of coordinates in `lib/logo.ts`, which the header, the
+welcome page and the About page all read.
 
 ## Security
 
