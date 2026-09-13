@@ -1,0 +1,818 @@
+/* ==========================================================================
+   Live preview — classes applied to `.cm-line` and inline spans by the
+   decoration plugin in `editor/livePreview.ts`.
+   ========================================================================== */
+
+/* Block spacing lives in the line-metrics block at the end of this file, which
+   has to outrank CodeMirror's own `.cm-line { padding: 0 }`. `.cm-md-block-start`
+   opens a block, `.cm-md-after-heading` follows a heading. */
+
+/* A line that has just handed its source back: the swap is abrupt by nature —
+   punctuation appears between the words — so it eases in instead of snapping. */
+.cm-line.cm-md-source {
+  animation: source-in var(--dur-gentle) var(--ease-decelerate);
+}
+
+@keyframes source-in {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* --- headings ---------------------------------------------------------- */
+
+/* The six levels step down in size, weight and leading together, so the rank
+   of a heading is legible from across the room rather than only up close. The
+   sizes are the same variables the exported page uses, which is what keeps the
+   preview and the PNG looking like each other.
+
+   Spacing above a block is carried by the block itself, matching how margins
+   collapse in the export. */
+.cm-md-h1,
+.cm-md-h2,
+.cm-md-h3,
+.cm-md-h4,
+.cm-md-h5,
+.cm-md-h6 {
+  color: var(--ink);
+  line-height: 1.32;
+  letter-spacing: -0.014em;
+}
+
+.cm-md-h1 {
+  font-size: var(--h1-size);
+  font-weight: 700;
+  letter-spacing: -0.024em;
+}
+
+.cm-md-h2 {
+  font-size: var(--h2-size);
+  font-weight: 675;
+  letter-spacing: -0.019em;
+}
+
+.cm-md-h3 {
+  font-size: var(--h3-size);
+  font-weight: 655;
+  letter-spacing: -0.013em;
+}
+
+.cm-md-h4 {
+  font-size: var(--h4-size);
+  font-weight: 645;
+  letter-spacing: -0.008em;
+}
+
+.cm-md-h5 {
+  font-size: var(--h5-size);
+  font-weight: 630;
+}
+
+.cm-md-h6 {
+  font-size: var(--h6-size);
+  font-weight: 630;
+  color: var(--ink-soft);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* --- blocks ------------------------------------------------------------ */
+
+.cm-md-quote {
+  border-left: 2px solid var(--border-strong);
+  color: var(--ink-soft);
+}
+
+.cm-md-codeblock {
+  background: var(--surface-sunken);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  line-height: 1.72;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+
+/* The opening fence becomes a header bar: language on the left, copy on the
+   right. Clicking it drops back to the raw ``` line so the language is
+   editable like every other mark in the document. */
+.cm-md-codehead {
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: var(--surface-sunken);
+  font-size: 0.78em;
+  line-height: 1.9;
+}
+
+.cm-md-codeend {
+  border-bottom: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+/* A fenced block with no body: the header is the whole block. */
+.cm-md-codehead.cm-md-codeend {
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.cm-md-fence {
+  display: inline-flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cm-md-fence__name {
+  flex: 1;
+  min-width: 0;
+  padding: 1px 4px;
+  margin-left: -4px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  text-transform: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+  transition:
+    background var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard);
+}
+
+.cm-md-fence__name:hover {
+  background: var(--surface-active);
+  color: var(--ink-soft);
+}
+
+.cm-md-fence__copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  color: var(--ink-faint);
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0;
+  transition:
+    opacity var(--dur-fast) var(--ease-standard),
+    background var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard);
+}
+
+.cm-line:hover .cm-md-fence__copy,
+.cm-md-fence__copy:focus-visible {
+  opacity: 1;
+}
+
+.cm-md-fence__copy:hover {
+  background: var(--surface-active);
+  color: var(--ink);
+}
+
+.cm-md-table {
+  font-size: 0.95em;
+}
+
+.cm-md-thead {
+  font-weight: 640;
+  background: var(--surface-sunken);
+}
+
+/* --- inline marks ------------------------------------------------------ */
+
+.cm-md-strong {
+  font-weight: 700;
+}
+
+.cm-md-em {
+  font-style: italic;
+}
+
+.cm-md-strike {
+  color: var(--ink-faint);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.cm-md-code {
+  padding: 1.5px 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  color: var(--code-ink);
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+}
+
+.cm-md-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(176, 85, 58, 0.3);
+  text-underline-offset: 2.5px;
+  text-decoration-thickness: 1px;
+}
+
+/* --- the rarer marks ---------------------------------------------------- */
+
+.cm-md-mark {
+  padding: 0.05em 0.15em;
+  border-radius: 2px;
+  background: var(--match);
+  color: var(--ink);
+}
+
+.cm-md-sup {
+  font-size: 0.72em;
+  vertical-align: super;
+}
+
+.cm-md-sub {
+  font-size: 0.72em;
+  vertical-align: sub;
+}
+
+.cm-md-fnref {
+  color: var(--accent);
+  font-size: 0.72em;
+  vertical-align: super;
+  font-variant-numeric: tabular-nums;
+}
+
+.cm-md-fn-def,
+.cm-md-frontmatter {
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+.cm-md-fn-def {
+  border-left: 2px solid var(--border);
+}
+
+.cm-md-frontmatter {
+  background: var(--surface-sunken);
+}
+
+/* --- lists -------------------------------------------------------------- */
+
+/* Every item breathes a little, and the whole list still reads as one unit
+   because the gap inside an item stays tighter than the gap between them.
+   The measurement itself sits with the other line metrics. */
+
+.cm-md-bullet {
+  display: inline-block;
+  min-width: 1.15em;
+  color: var(--ink-faint);
+  text-align: center;
+  vertical-align: 0.02em;
+}
+
+.cm-md-bullet--1 {
+  color: var(--border-strong);
+}
+
+.cm-md-bullet--2 {
+  color: var(--border-strong);
+  font-size: 0.85em;
+}
+
+.cm-md-ordinal {
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+}
+
+/* A wrapped line inside a list item hangs under its text, not under the bullet
+   (`.cm-md-list-cont`, measured with the other line metrics). */
+
+/* --- widgets ----------------------------------------------------------- */
+
+.cm-md-math {
+  color: var(--ink);
+}
+
+.cm-md-math-inline {
+  padding: 0 1px;
+}
+
+.cm-md-math-block {
+  display: inline-block;
+  width: 100%;
+  padding: 6px 0;
+  text-align: center;
+}
+
+.cm-md-math-block .katex-display {
+  margin: 0;
+}
+
+.cm-md-math-error {
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+/* Anchors for block widgets — math, tables and raw HTML — are measured with the
+   other line metrics. */
+
+/* Focus mode: the block being edited keeps full ink, everything else recedes. */
+.cm-md-dim {
+  opacity: 0.32;
+  transition: opacity var(--dur-gentle) var(--ease-standard);
+}
+
+/* Collapses the source lines a rendered block occupies. */
+.cm-md-collapsed {
+  height: 0;
+  overflow: hidden;
+  font-size: 0;
+  line-height: 0;
+}
+
+.cm-md-hr {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  height: 1.6em;
+  vertical-align: middle;
+}
+
+.cm-md-hr::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border-strong);
+}
+
+/* A rendered HTML block sits in the line like any other inline-level box. */
+.cm-md-html-block {
+  display: inline-block;
+  width: 100%;
+}
+
+.cm-md-table-block {
+  display: inline-block;
+  width: 100%;
+  padding: 6px 0;
+  /* The line inherits `pre-wrap`; table cells need normal flow. */
+  white-space: normal;
+}
+
+.cm-md-table-block table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+  letter-spacing: 0;
+}
+
+.cm-md-table-block th,
+.cm-md-table-block td {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+
+.cm-md-table-block th {
+  background: var(--surface-sunken);
+  font-weight: 640;
+}
+
+.cm-md-table-block p {
+  margin: 0;
+}
+
+.cm-md-image {
+  display: inline-block;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.cm-md-image img {
+  display: block;
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+}
+
+.cm-md-image-alt {
+  display: block;
+  margin-top: 7px;
+  color: var(--ink-faint);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.cm-md-task {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-right: 8px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  vertical-align: -2px;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard),
+    transform var(--dur-fast) var(--ease-standard);
+}
+
+.cm-md-task:hover {
+  border-color: var(--accent);
+}
+
+.cm-md-task:active {
+  transform: scale(0.88);
+}
+
+.cm-md-task::after {
+  content: '';
+  width: 7px;
+  height: 3.5px;
+  margin-top: -2px;
+  border-left: 1.8px solid #fff;
+  border-bottom: 1.8px solid #fff;
+  transform: rotate(-45deg) scale(0);
+  transition: transform var(--dur-normal) var(--ease-decelerate);
+}
+
+/* Ink, not the accent: a filled box is a state, not an alert. */
+.cm-md-task.is-checked {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.cm-md-task.is-checked::after {
+  transform: rotate(-45deg) scale(1);
+}
+
+/* KaTeX sits slightly small next to 16px body copy by default. */
+.cm-editor .katex {
+  font-size: 1.05em;
+}
+
+/* ==========================================================================
+   Export document — mounted off-screen by `export/render.ts` and captured to
+   PNG, so it must be fully self-contained and use absolute colours.
+   ========================================================================== */
+
+.export-host {
+  position: fixed;
+  left: -100000px;
+  top: 0;
+  width: 900px;
+  pointer-events: none;
+}
+
+.export-doc {
+  width: 900px;
+  padding: 64px 72px;
+  background: #ffffff;
+  color: #1a1814;
+  /* The same metrics the live preview uses, so a page exported to PNG is the
+     page that was on screen. */
+  font-family: var(--font-editor);
+  font-size: var(--editor-size);
+  line-height: var(--editor-line-height);
+  letter-spacing: -0.003em;
+}
+
+.export-doc > :first-child {
+  margin-top: 0;
+}
+
+.export-doc > :last-child {
+  margin-bottom: 0;
+}
+
+.export-doc h1,
+.export-doc h2,
+.export-doc h3,
+.export-doc h4,
+.export-doc h5,
+.export-doc h6 {
+  margin: var(--heading-gap) 0 0;
+  line-height: 1.32;
+  font-weight: 680;
+  letter-spacing: -0.016em;
+  color: #1a1814;
+}
+
+.export-doc h1 {
+  font-size: var(--h1-size);
+  font-weight: 700;
+  letter-spacing: -0.024em;
+}
+
+.export-doc h2 {
+  font-size: var(--h2-size);
+  font-weight: 675;
+}
+
+.export-doc h3 {
+  font-size: var(--h3-size);
+  font-weight: 655;
+}
+
+.export-doc h4 {
+  font-size: var(--h4-size);
+  font-weight: 645;
+}
+
+.export-doc h5 {
+  font-size: var(--h5-size);
+}
+
+.export-doc h6 {
+  color: #6b6459;
+  font-size: var(--h6-size);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Spacing lives above each block, in the same units the preview uses. */
+.export-doc p,
+.export-doc ul,
+.export-doc ol,
+.export-doc blockquote,
+.export-doc table,
+.export-doc pre,
+.export-doc figure {
+  margin: var(--block-gap) 0 0;
+}
+
+.export-doc h1 + p,
+.export-doc h2 + p,
+.export-doc h3 + p,
+.export-doc h4 + p,
+.export-doc h5 + p,
+.export-doc h6 + p,
+.export-doc h1 + ul,
+.export-doc h2 + ul,
+.export-doc h3 + ul,
+.export-doc h1 + ol,
+.export-doc h2 + ol,
+.export-doc h3 + ol,
+.export-doc h1 + pre,
+.export-doc h2 + pre,
+.export-doc h3 + pre,
+.export-doc h1 + blockquote,
+.export-doc h2 + blockquote,
+.export-doc h3 + blockquote,
+.export-doc h1 + table,
+.export-doc h2 + table,
+.export-doc h3 + table {
+  margin-top: var(--after-heading-gap);
+}
+
+.export-doc ul,
+.export-doc ol {
+  padding-left: 1.5em;
+}
+
+.export-doc li + li {
+  margin-top: 0.3em;
+}
+
+.export-doc a {
+  color: #b0553a;
+  text-decoration: underline;
+  text-decoration-color: rgba(176, 85, 58, 0.3);
+  text-underline-offset: 2.5px;
+}
+
+.export-doc strong {
+  font-weight: 700;
+}
+
+.export-doc blockquote {
+  padding: 0.1em 0 0.1em 1.1em;
+  border-left: 2px solid #d5cdbd;
+  color: #6b6459;
+}
+
+.export-doc code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+
+.export-doc :not(pre) > code {
+  padding: 1.5px 5px;
+  border: 1px solid #eae5db;
+  border-radius: 3px;
+  background: #f8f6f1;
+  color: #8a5a2b;
+}
+
+.export-doc pre {
+  padding: 14px 16px;
+  border-radius: 4px;
+  background: #f8f6f1;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.export-doc pre code {
+  background: none;
+  color: #1a1814;
+}
+
+.export-doc hr {
+  margin: calc(var(--block-gap) * 1.6) 0 0;
+  border: 0;
+  border-top: 1px solid #eae5db;
+}
+
+.export-doc img {
+  max-width: 100%;
+  border-radius: 4px;
+}
+
+.export-doc table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.94em;
+}
+
+.export-doc th,
+.export-doc td {
+  padding: 8px 12px;
+  border: 1px solid #eae5db;
+  text-align: left;
+}
+
+.export-doc th {
+  background: #f8f6f1;
+  font-weight: 640;
+}
+
+.export-doc mark {
+  padding: 0.05em 0.15em;
+  border-radius: 2px;
+  background: #f7e6c0;
+  color: inherit;
+}
+
+.export-doc sup,
+.export-doc sub {
+  font-size: 0.72em;
+  line-height: 0;
+}
+
+.export-doc .footnote-ref a {
+  color: #b0553a;
+  text-decoration: none;
+}
+
+.export-doc .footnotes {
+  margin-top: 2em;
+  padding-top: 0.9em;
+  border-top: 1px solid #eae5db;
+  color: #6b6459;
+  font-size: 0.9em;
+}
+
+.export-doc .footnotes ol {
+  margin: 0;
+  padding-left: 1.4em;
+}
+
+.export-doc .footnote-label {
+  color: #b0553a;
+  font-weight: 600;
+}
+
+.export-doc dl {
+  margin: var(--block-gap) 0 0;
+}
+
+.export-doc dt {
+  font-weight: 640;
+}
+
+.export-doc dd {
+  margin: 0.2em 0 0 1.4em;
+  color: #6b6459;
+}
+
+.export-doc .front-matter {
+  margin: 0 0 var(--block-gap);
+  padding: 10px 12px;
+  border-left: 2px solid #d5cdbd;
+  background: #f8f6f1;
+  color: #6b6459;
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+}
+
+.export-doc .md-math-block {
+  margin: 1.3em 0;
+  text-align: center;
+}
+
+/* KaTeX needs an explicit size on the host before it is rasterised. */
+.export-math {
+  font-size: 16px;
+  color: #1a1814;
+  line-height: normal;
+}
+
+.export-math .katex-display {
+  margin: 0;
+}
+
+/* ==========================================================================
+   Line metrics.
+
+   CodeMirror's own `.cm-line { padding: 0 }` is two classes deep, so a single
+   class on a line loses to it wherever this file sits in the cascade. Every
+   measurement that lands on a line is therefore stated here — one level deeper
+   than CodeMirror's reset — and nowhere else.
+   ========================================================================== */
+
+.cm-editor .cm-content .cm-md-block-start {
+  padding-top: var(--block-gap);
+}
+
+.cm-editor .cm-content .cm-md-after-heading {
+  padding-top: var(--after-heading-gap);
+}
+
+.cm-editor .cm-content .cm-md-h1,
+.cm-editor .cm-content .cm-md-h2,
+.cm-editor .cm-content .cm-md-h3,
+.cm-editor .cm-content .cm-md-h4,
+.cm-editor .cm-content .cm-md-h5,
+.cm-editor .cm-content .cm-md-h6 {
+  padding-top: var(--heading-gap);
+}
+
+.cm-editor .cm-content .cm-md-quote {
+  padding-left: 16px;
+}
+
+.cm-editor .cm-content .cm-md-codeblock {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.cm-editor .cm-content .cm-md-codehead {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.cm-editor .cm-content .cm-md-codeend {
+  padding-bottom: 9px;
+}
+
+.cm-editor .cm-content .cm-md-codehead.cm-md-codeend {
+  padding-bottom: 6px;
+}
+
+.cm-editor .cm-content .cm-md-listitem {
+  padding-top: 1.5px;
+  padding-bottom: 1.5px;
+}
+
+.cm-editor .cm-content .cm-md-list-cont {
+  padding-left: 1.15em;
+}
+
+.cm-editor .cm-content .cm-md-math-anchor,
+.cm-editor .cm-content .cm-md-table-anchor,
+.cm-editor .cm-content .cm-md-html-anchor {
+  padding-top: var(--block-gap);
+}
+
+.cm-editor .cm-content .cm-md-fn-def {
+  padding-left: 12px;
+}
+
+.cm-editor .cm-content .cm-md-frontmatter {
+  padding-left: 12px;
+  padding-right: 12px;
+}

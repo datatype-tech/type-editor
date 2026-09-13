@@ -1,0 +1,9 @@
+# One line ending in the repository, whatever the platform checking it out.
+* text=auto eol=lf
+
+*.png binary
+*.ico binary
+*.icns binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
