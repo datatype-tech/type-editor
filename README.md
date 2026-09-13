@@ -88,6 +88,40 @@ the Content-Security-Policy honest.
 node_modules/.bin/electron scripts/screenshot.cjs
 ```
 
+## Building
+
+```bash
+npm run build   # main, preload and renderer into out/
+npm run pack    # unpacked application in release/
+npm run dist    # installer and portable zip in release/
+```
+
+The About page states the version, which the renderer build reads from
+`package.json`, so a release only needs the version bumped in that one place.
+
+### About code signing
+
+The installer is **not** signed, and there is no way to make it signed that is
+both free and automatic. Windows SmartScreen decides what to trust from a
+certificate issued to a verified identity plus the file's download reputation,
+and it ignores self-signed certificates entirely — signing with one changes
+nothing.
+
+What is actually available:
+
+| Option | Cost | Effort |
+| ------ | ---- | ------ |
+| Ship unsigned | free | users see "Windows protected your PC" once, and can continue |
+| [SignPath.io](https://signpath.io) for open source | free | an application and a review; signing then runs in CI |
+| Azure Trusted Signing | about $10/month | identity verification, then fully automatic |
+| An OV or EV certificate | $200–600/year | the identity check is the slow part |
+
+The build is ready for any of them: electron-builder signs automatically when
+`CSC_LINK` (a `.pfx`, or a link to one) and `CSC_KEY_PASSWORD` are set in the
+environment, so nothing in this repository has to change. With SignPath the
+signing happens after the build, on the artifact, so it needs no configuration
+here at all.
+
 ## Keyboard shortcuts
 
 | | |

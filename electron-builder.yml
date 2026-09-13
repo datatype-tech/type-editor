@@ -1,8 +1,6 @@
 appId: org.dtio.typeeditor
 productName: Type Editor
 copyright: Copyright © Datatype Team
-publisherName: Datatype Team
-homepage: https://dtio.org
 directories:
   output: release
   buildResources: build
@@ -16,10 +14,6 @@ win:
     - nsis
     - zip
   artifactName: ${productName}-${version}-${arch}.${ext}
-  # Signing is configured entirely through the environment: set CSC_LINK and
-  # CSC_KEY_PASSWORD and the same build produces a signed installer. See the
-  # README for what is and is not possible without a certificate.
-  signAndEditExecutable: true
 nsis:
   oneClick: false
   perMachine: false
