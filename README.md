@@ -165,25 +165,6 @@ The mark is an insertion caret beside three lines of text that shorten as they
 descend. It is drawn from one set of coordinates in `lib/logo.ts`, which the
 header, the welcome page and the About page all read.
 
-## Code signing
-
-The installer is **not** signed, and there is no way to make it signed that is
-both free and automatic. Windows SmartScreen decides what to trust from a
-certificate issued to a verified identity plus the file's download reputation,
-and it ignores self-signed certificates entirely — signing with one changes
-nothing.
-
-| Option | Cost | Effort |
-| ------ | ---- | ------ |
-| Ship unsigned | free | users see "Windows protected your PC" once, and can continue |
-| [SignPath.io](https://signpath.io) for open source | free | an application and a review; signing then runs in CI |
-| Azure Trusted Signing | about $10/month | identity verification, then fully automatic |
-| An OV or EV certificate | $200–600/year | the identity check is the slow part |
-
-The build is ready for any of them: electron-builder signs automatically when
-`CSC_LINK` (a `.pfx`, or a link to one) and `CSC_KEY_PASSWORD` are set in the
-environment, so nothing in this repository has to change.
-
 ## Security
 
 The renderer runs sandboxed with `contextIsolation` on and no Node integration.
