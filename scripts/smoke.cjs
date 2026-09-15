@@ -486,16 +486,22 @@ async function testExports() {
   const extractDir = path.join(TMP, 'docx-extracted')
   fs.rmSync(extractDir, { recursive: true, force: true })
   try {
-    execFileSync(
-      'powershell.exe',
-      [
-        '-NoProfile',
-        '-NonInteractive',
-        '-Command',
-        `Expand-Archive -LiteralPath '${docxZipPath}' -DestinationPath '${extractDir}' -Force`
-      ],
-      { stdio: 'pipe' }
-    )
+    if (process.platform === 'win32') {
+      // Expand-Archive only accepts a .zip extension, so expand a copy.
+      execFileSync(
+        'powershell.exe',
+        [
+          '-NoProfile',
+          '-NonInteractive',
+          '-Command',
+          `Expand-Archive -LiteralPath '${docxZipPath}' -DestinationPath '${extractDir}' -Force`
+        ],
+        { stdio: 'pipe' }
+      )
+    } else {
+      fs.mkdirSync(extractDir, { recursive: true })
+      execFileSync('unzip', ['-o', docxZipPath, '-d', extractDir], { stdio: 'pipe' })
+    }
   } catch (error) {
     check('DOCX unzips as an OOXML package', false, String(error.message).slice(0, 300))
     win.destroy()
