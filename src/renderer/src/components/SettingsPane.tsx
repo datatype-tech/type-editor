@@ -70,15 +70,20 @@ function SettingsPane({
   >('idle')
   const [downloadPercent, setDownloadPercent] = useState(0)
   const [updateError, setUpdateError] = useState('')
+  const [rateLimitResetAt, setRateLimitResetAt] = useState<number | null>(null)
 
   const handleCheckUpdate = useCallback(async () => {
     setCheckingUpdate(true)
     setUpdateError('')
+    setRateLimitResetAt(null)
     try {
       const res = await window.api.checkForUpdates()
       if (res.hasUpdate && res.update) {
         setUpdateInfo(res.update)
         setUpdateStatus('available')
+      } else if (res.error === 'rate_limited') {
+        setUpdateStatus('error')
+        setRateLimitResetAt(res.rateLimitResetAt ?? null)
       } else if (res.error) {
         setUpdateStatus('error')
         setUpdateError(res.error)
@@ -374,11 +379,11 @@ function SettingsPane({
           <div className="field">
             <div className="update-card">
               <div className="update-card__header">
-                <div>
+                <div className="update-card__info">
                   <div className="update-card__version">
                     {t('settings.currentVersion', { version: __APP_VERSION__ })}
                   </div>
-                  <div className="update-card__status">
+                  <div className="update-card__status" key={`status-${updateStatus}-${checkingUpdate}`}>
                     {checkingUpdate
                       ? t('settings.checkingUpdate')
                       : updateStatus === 'uptodate'
@@ -390,12 +395,16 @@ function SettingsPane({
                             : updateStatus === 'ready'
                               ? t('settings.updateDownloaded')
                               : updateStatus === 'error'
-                                ? t('settings.updateFailed', { error: updateError })
+                                ? rateLimitResetAt
+                                  ? t('settings.updateRateLimited', {
+                                      time: new Date(rateLimitResetAt).toLocaleTimeString()
+                                    })
+                                  : t('settings.updateFailed', { error: updateError })
                                 : ''}
                   </div>
                 </div>
 
-                <div className="update-card__actions">
+                <div className="update-card__actions" key={`actions-${updateStatus}`}>
                   {updateStatus === 'ready' ? (
                     <button
                       type="button"

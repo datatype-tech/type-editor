@@ -70,6 +70,8 @@ export interface UpdateCheckResult {
   currentVersion: string
   update?: UpdateInfo
   error?: string
+  /** Set when `error` is the sentinel `'rate_limited'`: epoch ms the GitHub API quota resets. */
+  rateLimitResetAt?: number
 }
 
 export interface UpdateDownloadProgress {

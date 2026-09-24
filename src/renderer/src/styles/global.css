@@ -429,6 +429,15 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* The editor scopes its own selection colour via CodeMirror's theme; this
+   covers every other bit of text in the app (settings, dialogs, toolbar,
+   the welcome page) so selecting anything uses the current theme's accent
+   tint instead of Chromium's default system blue. */
+::selection {
+  background-color: var(--selection);
+  color: inherit;
+}
+
 button,
 input,
 select,
@@ -1836,9 +1845,17 @@ button {
 
 .update-card__header {
   display: flex;
-  align-items: center;
+  /* flex-start rather than center: once the status line below the version
+     wraps onto two lines (a longer error message, say), a centred button
+     drifts down and looks detached from the title it belongs to. */
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+}
+
+.update-card__info {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .update-card__version {
@@ -1851,6 +1868,14 @@ button {
   margin-top: 2px;
   font-size: 11.5px;
   color: var(--ink-soft);
+  animation: rise-in var(--dur-normal) var(--ease-decelerate) both;
+}
+
+.update-card__actions {
+  flex: none;
+  /* Slight delay so the new button follows the status text instead of
+     racing it — the two-step cascade reads as one deliberate transition. */
+  animation: rise-in var(--dur-normal) var(--ease-decelerate) 30ms both;
 }
 
 .update-card__progress {
@@ -1859,18 +1884,20 @@ button {
   border-radius: 2px;
   background: var(--border);
   overflow: hidden;
+  animation: rise-in var(--dur-normal) var(--ease-decelerate) both;
 }
 
 .update-card__bar {
   height: 100%;
   background: var(--accent);
-  transition: width 200ms ease-out;
+  transition: width var(--dur-normal) var(--ease-decelerate);
 }
 
 .update-card__meta {
   display: flex;
   align-items: center;
   margin-top: 2px;
+  animation: rise-in var(--dur-normal) var(--ease-decelerate) both;
 }
 
 .select:hover {

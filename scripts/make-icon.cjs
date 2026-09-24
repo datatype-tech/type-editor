@@ -5,8 +5,10 @@
  *
  *   node_modules/.bin/electron scripts/make-icon.cjs
  *
- * The icon is the mark on a tile of its own colour: at 16px a thin mark on a
- * transparent ground turns to mush, and a tile is what a taskbar expects.
+ * The icon is the same mark the interface uses: coloured bars on a fully
+ * transparent ground, no background tile. The window is created with
+ * `transparent: true` so `capturePage()` keeps an alpha channel instead of
+ * baking the corners in as opaque white.
  * Development helper — the output is committed, not generated during a build.
  */
 
@@ -37,7 +39,7 @@ const BARS = [
  * scaled by the window rather than redrawn per size.
  */
 function svg() {
-  const scale = (256 * 0.6) / 24
+  const scale = (256 * 0.82) / 24
   const offset = (256 - 24 * scale) / 2
   const bars = BARS.map(
     ([x, y, width, height]) =>
@@ -45,8 +47,7 @@ function svg() {
   ).join('')
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
-  <rect width="256" height="256" rx="56" fill="${ACCENT}"/>
-  <g transform="translate(${offset.toFixed(2)},${offset.toFixed(2)}) scale(${scale.toFixed(4)})" fill="#ffffff">${bars}</g>
+  <g transform="translate(${offset.toFixed(2)},${offset.toFixed(2)}) scale(${scale.toFixed(4)})" fill="${ACCENT}">${bars}</g>
 </svg>`
 }
 
@@ -128,7 +129,9 @@ app.whenReady().then(async () => {
     useContentSize: true,
     show: false,
     frame: false,
-    resizable: true
+    resizable: true,
+    transparent: true,
+    backgroundColor: '#00000000'
   })
   await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(page())}`)
   await sleep(400)

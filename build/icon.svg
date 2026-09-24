@@ -1,4 +1,3 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
-  <rect width="256" height="256" rx="56" fill="#b0553a"/>
-  <g transform="translate(51.20,51.20) scale(6.4000)" fill="#ffffff"><rect x="2.8" y="3.2" width="3.2" height="17.6" rx="1.6"/><rect x="9.2" y="4.6" width="12.2" height="3.2" rx="1.6"/><rect x="9.2" y="10.4" width="9.2" height="3.2" rx="1.6"/><rect x="9.2" y="16.2" width="6.2" height="3.2" rx="1.6"/></g>
+  <g transform="translate(23.04,23.04) scale(8.7467)" fill="#b0553a"><rect x="2.8" y="3.2" width="3.2" height="17.6" rx="1.6"/><rect x="9.2" y="4.6" width="12.2" height="3.2" rx="1.6"/><rect x="9.2" y="10.4" width="9.2" height="3.2" rx="1.6"/><rect x="9.2" y="16.2" width="6.2" height="3.2" rx="1.6"/></g>
 </svg>

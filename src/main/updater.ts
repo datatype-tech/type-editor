@@ -39,10 +39,17 @@ interface GitHubRelease {
   assets: GitHubAsset[]
 }
 
+/** GitHub's unauthenticated API allows 60 requests/hour per IP; re-checking on
+ * every launch, every close, and every manual click can burn through that
+ * fast, so a recent result is reused instead of re-hitting the network. */
+const CHECK_THROTTLE_MS = 5 * 60 * 1000
+
 class AutoUpdater {
   private cachedUpdate: UpdateInfo | null = null
   private downloadedPath: string | null = null
   private isDownloading = false
+  private lastCheckedAt = 0
+  private lastResult: UpdateCheckResult | null = null
   public userDeclinedOnClose = false
 
   public getCachedUpdate(): UpdateInfo | null {
@@ -55,6 +62,11 @@ class AutoUpdater {
 
   public async checkForUpdates(silent = false): Promise<UpdateCheckResult> {
     const currentVersion = app.getVersion()
+
+    if (this.lastResult && Date.now() - this.lastCheckedAt < CHECK_THROTTLE_MS) {
+      return this.lastResult
+    }
+
     try {
       const headers: Record<string, string> = {
         'User-Agent': `Type-Editor/${currentVersion}`,
@@ -67,18 +79,23 @@ class AutoUpdater {
 
       const response = await net.fetch(RELEASES_API, { headers })
       if (!response.ok) {
+        if (response.status === 403 && response.headers.get('x-ratelimit-remaining') === '0') {
+          const resetHeader = response.headers.get('x-ratelimit-reset')
+          const resetAt = resetHeader ? Number(resetHeader) * 1000 : undefined
+          return this.remember({ hasUpdate: false, currentVersion, error: 'rate_limited', rateLimitResetAt: resetAt })
+        }
         throw new Error(`GitHub API returned ${response.status}: ${response.statusText}`)
       }
 
       const releases = (await response.json()) as GitHubRelease[]
       if (!Array.isArray(releases) || releases.length === 0) {
-        return { hasUpdate: false, currentVersion }
+        return this.remember({ hasUpdate: false, currentVersion })
       }
 
       // Find the latest non-draft release
       const latest = releases.find((r) => !r.draft)
       if (!latest) {
-        return { hasUpdate: false, currentVersion }
+        return this.remember({ hasUpdate: false, currentVersion })
       }
 
       const remoteVersion = latest.tag_name.replace(/^v/i, '')
@@ -86,7 +103,7 @@ class AutoUpdater {
 
       if (!hasUpdate) {
         this.cachedUpdate = null
-        return { hasUpdate: false, currentVersion }
+        return this.remember({ hasUpdate: false, currentVersion })
       }
 
       // Find best asset for Windows / current platform
@@ -119,21 +136,29 @@ class AutoUpdater {
       }
 
       this.cachedUpdate = updateInfo
-      return {
+      return this.remember({
         hasUpdate: true,
         currentVersion,
         update: updateInfo
-      }
+      })
     } catch (error) {
       if (!silent) {
         console.error('Failed to check for updates:', error)
       }
-      return {
+      return this.remember({
         hasUpdate: false,
         currentVersion,
         error: (error as Error).message
-      }
+      })
     }
+  }
+
+  /** Caches a result for `CHECK_THROTTLE_MS` so back-to-back checks (boot,
+   * close-guard, a user clicking twice) don't each spend a request. */
+  private remember(result: UpdateCheckResult): UpdateCheckResult {
+    this.lastResult = result
+    this.lastCheckedAt = Date.now()
+    return result
   }
 
   public async downloadUpdate(
