@@ -1,4 +1,10 @@
 !ifndef BUILD_UNINSTALLER
+  # These are normally pulled in by installer.nsi, but this file is spliced
+  # into the header script (before that !include happens), so the custom
+  # page Functions below need them available already.
+  !include "MUI2.nsh"
+  !include "nsDialogs.nsh"
+
   Var ContextMenuCheckbox
   Var AddContextMenu
 
